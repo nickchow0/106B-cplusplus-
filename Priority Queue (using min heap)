@@ -1,0 +1,155 @@
+// Nick Chow
+// CS106B HW5 - Priority Queue
+// This is a .cpp file for the heap version of the priority queue
+// Contains all the public and private functions of the class
+// The HeapPriorityQueue is on average much faster than both the Array and LinkedList versions
+// because enqueueing and dequeueing both only take O(log(N))
+// peek and size methods are only O(1) and therefore HeapPQ is overall the fastest option
+
+#include "HeapPriorityQueue.h"
+
+HeapPriorityQueue::HeapPriorityQueue() {        // initialize the array
+    PQArray = new PQEntry[10]();
+    myCapacity = 10;
+    mySize = 0;
+}
+
+HeapPriorityQueue::~HeapPriorityQueue() {       // destructor
+    delete[] PQArray;
+}
+
+void HeapPriorityQueue::changePriority(string value, int newPriority) {     //changes the priority of an element
+    int position;
+    if (mySize == 0) {      // if queue is empty
+        throw "Error: priority queue is empty";
+    } else {
+        for (int i = 1; i <= mySize; i++) {
+            if (PQArray[i].value == value) {        // found the target value
+                if (PQArray[i].priority < newPriority) {    // new priority cannot be greater than old priority
+                    throw "Error: new priority cannot be greater than old priority";
+                } else {
+                    PQArray[i].priority = newPriority;  //change the priority
+                    position = i;
+                    break;
+                }
+            }
+            else if (i == mySize && PQArray[i].value != value) {    // end of array and value not found
+                throw "Error: The given value is not found in this priority queue";
+            }
+        }
+    }
+    enqueueHelper(PQArray[position], position);     // bubble up
+}
+
+void HeapPriorityQueue::clear() {       // zero out the array
+    for (int i = 1; i < mySize; i++) {
+        PQArray[i].value = "";
+        PQArray[i].priority = NULL;
+    }
+    mySize = 0;
+}
+
+string HeapPriorityQueue::dequeue() {   // dequeue the element with the highest priority
+    if (mySize == 0) {              // if queue is empty
+        throw "Error: priority queue is empty";
+    }
+    PQEntry result = PQArray[1];
+    PQArray[1] = PQArray[mySize];   // move the last node to the front
+    PQArray[mySize].value = "";     // resetting the last node
+    PQArray[mySize].priority = 0;
+    dequeueHelper(PQArray[1], 1);   // call the helper function
+    mySize--;
+    return result.value;
+}
+
+void HeapPriorityQueue::dequeueHelper(PQEntry first, int position) {    // helper for enqueue and changePriority
+    if (position*2 >= mySize-1
+            || (first < PQArray[position*2] && first < PQArray[position*2+1])) {     // base case
+        return;
+    } else {
+        // find the more urgent child and swap with it
+        if (PQArray[position*2] < PQArray[position*2+1]) {
+            PQEntry temp = PQArray[position*2];
+            PQArray[position] = temp;
+            PQArray[position*2] = first;
+            dequeueHelper(first, position*2);       // recursive call
+        } else {
+            PQEntry temp = PQArray[position*2+1] ;
+            PQArray[position] = temp;
+            PQArray[position*2+1] = first;
+            dequeueHelper(first, position*2+1);     // recursive call
+        }
+    }
+}
+
+void HeapPriorityQueue::enqueue(string value, int priority) {    // enqueue a new element
+    checkResize();      // doubles the size of the array if it is out of space
+    PQEntry newEntry(value, priority);
+    if (mySize == 0) {      // array is empty
+        PQArray[1] = newEntry;
+    } else {
+        PQArray[mySize+1] = newEntry;   // add new element to end of queue
+        enqueueHelper(newEntry, mySize+1);  // calls the helper function
+    }
+    mySize++;
+}
+
+void HeapPriorityQueue::enqueueHelper (PQEntry newEntry, int position) {
+    if (position <= 1 || newEntry >= PQArray[position/2]) {        //base case
+        return;
+    } else {
+        PQEntry temp = PQArray[(position)/2];       // swap the parent and child
+        PQArray[(position)/2] = newEntry;
+        PQArray[position] = temp;
+        enqueueHelper(newEntry, position/2);        // recusive call
+    }
+}
+
+bool HeapPriorityQueue::isEmpty() const {           // returns whether the queue is empty
+    return !mySize;
+}
+
+string HeapPriorityQueue::peek() const {            // returns at the value of the most urgent element
+    if (mySize == 0) {
+        throw "Error: priority queue is empty";
+    }
+    return PQArray[1].value;
+}
+
+int HeapPriorityQueue::peekPriority() const {       // returns at the priority of the most urgent element
+    if (mySize == 0) {
+        throw "Error: priority queue is empty";
+    }
+    return PQArray[1].priority;
+}
+
+int HeapPriorityQueue::size() const {               // returns the size of the queue
+    return mySize;
+}
+
+PQEntry HeapPriorityQueue::getPQEntry(int index) const {       // private helper to get an element at an index
+    return PQArray[index];
+}
+
+ostream& operator<<(ostream& out, const HeapPriorityQueue& PQArray) {   // prints the queue
+    out << "{";
+    if (!PQArray.isEmpty()) {
+        for (int i = 1; i < PQArray.size(); i++) {
+            out << PQArray.getPQEntry(i) << ", ";
+        }
+        out << PQArray.getPQEntry(PQArray.size());
+    }
+    out << "}";
+    return out;
+}
+
+void HeapPriorityQueue::checkResize() {     // doubles the size of the array if it is out of space
+    if (mySize+1 >= myCapacity) {
+           PQEntry* bigger = new PQEntry[myCapacity * 2]();
+           for (int i = 1; i <= mySize; i++) {
+               bigger[i] = PQArray[i];
+           }
+           PQArray = bigger;
+           myCapacity = myCapacity*2;
+    }
+}
